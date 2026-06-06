@@ -1,0 +1,55 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { VOICES } from '@/lib/voices.config'
+import type { MultiVoiceResult, SpeechResult } from '@/types'
+
+interface Props { primarySpeechResult: SpeechResult; multiVoiceResults: MultiVoiceResult[] }
+
+export function VoiceComparison({ primarySpeechResult, multiVoiceResults }: Props) {
+  const allVoices = [
+    { voiceId: VOICES.primary.id, voiceName: VOICES.primary.name, audioBase64: primarySpeechResult.audioBase64 },
+    ...multiVoiceResults,
+  ]
+  const [urls, setUrls] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    const map: Record<string, string> = {}
+    for (const v of allVoices) {
+      if (v.audioBase64) {
+        const bytes = Uint8Array.from(atob(v.audioBase64), c => c.charCodeAt(0))
+        map[v.voiceId] = URL.createObjectURL(new Blob([bytes], { type: 'audio/mpeg' }))
+      }
+    }
+    setUrls(map)
+    return () => { for (const u of Object.values(map)) URL.revokeObjectURL(u) }
+  }, [primarySpeechResult, multiVoiceResults]) // eslint-disable-line
+
+  const download = (voiceId: string, voiceName: string) => {
+    const url = urls[voiceId]; if (!url) return
+    Object.assign(document.createElement('a'), { href: url, download: `voiceover-${voiceName}.mp3` }).click()
+  }
+
+  return (
+    <div className="rounded-lg border border-gray-800 bg-gray-900 p-4 space-y-4">
+      <label className="text-sm font-medium text-gray-400">多音色对比</label>
+      <div className="grid grid-cols-2 gap-3">
+        {allVoices.map(v => (
+          <div key={v.voiceId} className="rounded border border-gray-700 bg-gray-950 p-3 space-y-2">
+            <div className="text-sm font-medium text-gray-200">{v.voiceName}</div>
+            {'error' in v && v.error
+              ? <p className="text-xs text-red-400">{v.error}</p>
+              : urls[v.voiceId]
+                ? <>
+                    <audio src={urls[v.voiceId]} controls className="h-8 w-full" />
+                    <button onClick={() => download(v.voiceId, v.voiceName)}
+                      className="w-full rounded border border-gray-700 py-1 text-xs hover:bg-gray-800">
+                      下载 {v.voiceName}
+                    </button>
+                  </>
+                : <p className="text-xs text-gray-500">生成中...</p>}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
