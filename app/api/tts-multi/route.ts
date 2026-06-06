@@ -3,7 +3,7 @@ import { generateSpeech } from '@/lib/elevenlabs'
 import { checkRateLimit } from '@/lib/rate-limiter'
 import { VOICES } from '@/lib/voices.config'
 
-const ALLOWED = new Set(VOICES.comparison.map(v => v.id))
+const ALLOWED: Set<string> = new Set(VOICES.comparison.map(v => v.id))
 
 export async function POST(req: NextRequest) {
   const origin = req.headers.get('origin')

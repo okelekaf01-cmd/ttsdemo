@@ -1,0 +1,6 @@
+{
+  "functions": {
+    "app/api/tts-with-timestamps/route.ts": { "maxDuration": 60 },
+    "app/api/tts-multi/route.ts": { "maxDuration": 60 }
+  }
+}

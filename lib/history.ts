@@ -65,7 +65,8 @@ export async function getAllRecords(): Promise<Omit<HistoryRecord, 'audioBlob'>[
     const all = await req(tx.objectStore(STORE_NAME).index('createdAt').getAll()) as HistoryRecord[]
     return all
       .sort((a, b) => b.createdAt - a.createdAt)
-      .map(({ audioBlob: _b, ...rest }) => rest)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      .map(({ audioBlob, ...rest }) => rest)
   } catch {
     const key = 'voh-fallback'
     return JSON.parse(sessionStorage.getItem(key) ?? '[]')
