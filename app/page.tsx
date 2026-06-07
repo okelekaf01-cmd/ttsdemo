@@ -11,6 +11,7 @@ export default function Home() {
   const isLoading = task.state === 'translating' || task.state === 'generating'
   const resultRef = useRef<HTMLDivElement>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [inputText, setInputText] = useState('')
 
   useEffect(() => {
     if (task.state === 'done' || task.state === 'error') {
@@ -34,18 +35,18 @@ export default function Home() {
           <div className="md:hidden absolute inset-0 z-10 flex">
             <div className="flex-1 bg-black/30" onClick={() => setHistoryOpen(false)} />
             <div className="w-64 h-full bg-white shadow-xl">
-              <HistoryPanel onSelect={r => { task.loadFromHistory(r); setHistoryOpen(false) }} />
+              <HistoryPanel onSelect={r => { task.loadFromHistory(r); setInputText(r.chineseText); setHistoryOpen(false) }} />
             </div>
           </div>
         )}
 
         {/* desktop sidebar */}
         <div className="hidden md:flex">
-          <HistoryPanel onSelect={task.loadFromHistory} />
+          <HistoryPanel onSelect={r => { task.loadFromHistory(r); setInputText(r.chineseText) }} />
         </div>
 
         <main className="flex-1 space-y-4 overflow-y-auto p-4 md:p-6 md:space-y-6">
-          <InputPanel onGenerate={task.generate} isLoading={isLoading} />
+          <InputPanel value={inputText} onChange={setInputText} onGenerate={task.generate} isLoading={isLoading} />
           {task.state !== 'idle' && (
             <div ref={resultRef}>
               <ResultPanel englishText={task.englishText} speechResult={task.speechResult}
