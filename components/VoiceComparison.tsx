@@ -33,7 +33,7 @@ export function VoiceComparison({ primarySpeechResult, multiVoiceResults }: Prop
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
       <label className="text-sm font-medium text-gray-700">多音色对比</label>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {allVoices.map(v => (
           <div key={v.voiceId} className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
             <div className="text-sm font-medium text-gray-800">{v.voiceName}</div>

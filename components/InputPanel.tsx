@@ -23,7 +23,7 @@ export function InputPanel({ onGenerate, isLoading }: InputPanelProps) {
         </span>
         <button type="submit" disabled={isLoading || !text.trim()}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors">
-          {isLoading ? '生成中...' : <><span>生成翻译 + 语音</span> <span className="opacity-60 text-xs ml-1">Ctrl+↵</span></>}
+          {isLoading ? '生成中...' : <><span>生成翻译 + 语音</span><span className="hidden sm:inline opacity-60 text-xs ml-1">Ctrl+↵</span></>}
         </button>
       </div>
     </form>
