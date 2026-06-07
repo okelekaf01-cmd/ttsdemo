@@ -73,6 +73,19 @@ export async function getAllRecords(): Promise<Omit<HistoryRecord, 'audioBlob'>[
   }
 }
 
+export async function deleteRecord(id: string): Promise<void> {
+  try {
+    const db = await openDB()
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    tx.objectStore(STORE_NAME).delete(id)
+    await txDone(tx)
+  } catch {
+    const key = 'voh-fallback'
+    const existing = JSON.parse(sessionStorage.getItem(key) ?? '[]')
+    sessionStorage.setItem(key, JSON.stringify(existing.filter((r: { id: string }) => r.id !== id)))
+  }
+}
+
 export async function getRecord(id: string): Promise<HistoryRecord | null> {
   try {
     const db = await openDB()
