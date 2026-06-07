@@ -10,6 +10,8 @@ export function VoiceComparison({ primarySpeechResult, multiVoiceResults }: Prop
     { voiceId: VOICES.primary.id, voiceName: VOICES.primary.name, audioBase64: primarySpeechResult.audioBase64 },
     ...multiVoiceResults,
   ]
+  const allVoicesMeta = [...[VOICES.primary], ...VOICES.comparison]
+  const getTag = (id: string) => allVoicesMeta.find(v => v.id === id)?.tag ?? ''
   const [urls, setUrls] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -36,7 +38,10 @@ export function VoiceComparison({ primarySpeechResult, multiVoiceResults }: Prop
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {allVoices.map(v => (
           <div key={v.voiceId} className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
-            <div className="text-sm font-medium text-gray-800">{v.voiceName}</div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-800">{v.voiceName}</span>
+              <span className="text-xs text-gray-400">{getTag(v.voiceId)}</span>
+            </div>
             {'error' in v && v.error
               ? <p className="text-xs text-red-500">{v.error}</p>
               : urls[v.voiceId]
