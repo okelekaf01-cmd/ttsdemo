@@ -4,6 +4,19 @@ import { checkRateLimit } from '@/lib/rate-limiter'
 import { VOICES } from '@/lib/voices.config'
 
 const ALLOWED: Set<string> = new Set(VOICES.comparison.map(v => v.id))
+const CONCURRENCY = 2
+
+async function runBatched<T>(
+  tasks: (() => Promise<T>)[],
+  limit: number
+): Promise<PromiseSettledResult<T>[]> {
+  const results: PromiseSettledResult<T>[] = []
+  for (let i = 0; i < tasks.length; i += limit) {
+    const batch = await Promise.allSettled(tasks.slice(i, i + limit).map(t => t()))
+    results.push(...batch)
+  }
+  return results
+}
 
 export async function POST(req: NextRequest) {
   const origin = req.headers.get('origin')
@@ -20,14 +33,14 @@ export async function POST(req: NextRequest) {
   if (!Array.isArray(voiceIds) || !voiceIds.every((id: unknown) => ALLOWED.has(id as string)))
     return NextResponse.json({ error: 'Invalid voiceIds' }, { status: 400 })
 
-  const results = await Promise.allSettled(
-    voiceIds.map(async (voiceId: string) => ({
-      voiceId,
-      voiceName: VOICES.comparison.find(v => v.id === voiceId)?.name ?? voiceId,
-      audioBase64: await generateSpeech(text, voiceId),
-      error: undefined,
-    }))
-  )
+  const tasks = voiceIds.map((voiceId: string) => async () => ({
+    voiceId,
+    voiceName: VOICES.comparison.find(v => v.id === voiceId)?.name ?? voiceId,
+    audioBase64: await generateSpeech(text, voiceId),
+    error: undefined,
+  }))
+
+  const results = await runBatched(tasks, CONCURRENCY)
 
   return NextResponse.json(
     results.map((r, i) =>
