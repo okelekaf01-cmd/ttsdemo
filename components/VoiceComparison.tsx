@@ -27,6 +27,7 @@ export function VoiceComparison({ primarySpeechResult, multiVoiceResults }: Prop
   const download = (voiceId: string, voiceName: string) => {
     const url = urls[voiceId]; if (!url) return
     Object.assign(document.createElement('a'), { href: url, download: `voiceover-${voiceName}.mp3` }).click()
+    setTimeout(() => URL.revokeObjectURL(url), 100)
   }
 
   return (

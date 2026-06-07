@@ -67,7 +67,10 @@ export function useVoiceoverTask() {
     const multiVoiceResults = multiRes.status === 'fulfilled' ? multiRes.value : []
 
     if (!speechResult) {
-      setData(d => ({ ...d, state: 'error', error: `语音生成失败：${speechRes.status === 'rejected' ? speechRes.reason : ''}` }))
+      const reason = speechRes.status === 'rejected'
+        ? (speechRes.reason instanceof Error ? speechRes.reason.message : String(speechRes.reason))
+        : ''
+      setData(d => ({ ...d, state: 'error', error: `语音生成失败：${reason}` }))
       return
     }
 

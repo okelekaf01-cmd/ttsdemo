@@ -23,9 +23,8 @@ export async function POST(req: NextRequest) {
   try {
     return NextResponse.json(await generateSpeechWithTimestamps(text, voiceId))
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'TTS failed' },
-      { status: 502 }
-    )
+    const msg = err instanceof Error ? err.message : 'TTS failed'
+    console.error('[tts-with-timestamps]', msg)
+    return NextResponse.json({ error: msg }, { status: 502 })
   }
 }

@@ -21,7 +21,7 @@ export function ResultPanel({ englishText, speechResult, state, error }: ResultP
     const bytes = Uint8Array.from(atob(speechResult.audioBase64), c => c.charCodeAt(0))
     const url = URL.createObjectURL(new Blob([bytes], { type: 'audio/mpeg' }))
     Object.assign(document.createElement('a'), { href: url, download: 'voiceover.mp3' }).click()
-    URL.revokeObjectURL(url)
+    setTimeout(() => URL.revokeObjectURL(url), 100)
   }
 
   return (

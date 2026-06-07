@@ -1,6 +1,6 @@
 import type { AlignmentData, SpeechResult } from '@/types'
 
-const MODEL_ID = 'eleven_turbo_v2_5'
+const MODEL_ID = 'eleven_multilingual_v2'
 const VOICE_SETTINGS = {
   stability: 0.35,
   similarity_boost: 0.75,

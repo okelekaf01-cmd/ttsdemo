@@ -1,18 +1,24 @@
 export async function translateToEnglish(text: string): Promise<string> {
-  const endpoint = process.env.DEEPL_API_KEY?.endsWith(':fx')
-    ? 'https://api-free.deepl.com/v2/translate'
-    : 'https://api.deepl.com/v2/translate'
-
-  const res = await fetch(endpoint, {
+  const res = await fetch('https://api.deepseek.com/chat/completions', {
     method: 'POST',
     headers: {
-      Authorization: `DeepL-Auth-Key ${process.env.DEEPL_API_KEY}`,
+      Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ text: [text], source_lang: 'ZH', target_lang: 'EN' }),
+    body: JSON.stringify({
+      model: 'deepseek-v4-flash',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a professional translator. Translate the Chinese voiceover script to natural, fluent English. Output only the translated text, no explanations.',
+        },
+        { role: 'user', content: text },
+      ],
+      temperature: 0.3,
+    }),
   })
 
-  if (!res.ok) throw new Error(`DeepL ${res.status}: ${await res.text().catch(() => '')}`)
+  if (!res.ok) throw new Error(`DeepSeek ${res.status}: ${await res.text().catch(() => '')}`)
   const data = await res.json()
-  return data.translations[0].text as string
+  return data.choices[0].message.content.trim() as string
 }

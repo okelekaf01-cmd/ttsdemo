@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { splitSentences, buildTimestampsFromAlignment } from '@/lib/sentences'
 import type { SentenceWithTimestamps, SpeechResult } from '@/types'
 
@@ -11,13 +11,15 @@ export function HighlightPlayer({ englishText, speechResult }: HighlightPlayerPr
   const [activeIdx, setActiveIdx] = useState(-1)
   const sentencesRef = useRef<SentenceWithTimestamps[]>([])
 
+  const sentences = useMemo(() => splitSentences(englishText), [englishText])
+
   useEffect(() => {
     const bytes = Uint8Array.from(atob(speechResult.audioBase64), c => c.charCodeAt(0))
     const url = URL.createObjectURL(new Blob([bytes], { type: 'audio/mpeg' }))
     setAudioUrl(url)
-    sentencesRef.current = buildTimestampsFromAlignment(splitSentences(englishText), speechResult.alignment)
+    sentencesRef.current = buildTimestampsFromAlignment(sentences, speechResult.alignment)
     return () => URL.revokeObjectURL(url)
-  }, [speechResult, englishText])
+  }, [speechResult, sentences])
 
   const onTimeUpdate = () => {
     const t = audioRef.current?.currentTime ?? 0
@@ -29,7 +31,7 @@ export function HighlightPlayer({ englishText, speechResult }: HighlightPlayerPr
       <audio ref={audioRef} src={audioUrl} controls onTimeUpdate={onTimeUpdate}
         onEnded={() => setActiveIdx(-1)} className="w-full" />
       <div className="text-sm leading-loose">
-        {splitSentences(englishText).map((s, i) => (
+        {sentences.map((s, i) => (
           <span key={i} className={`rounded px-0.5 transition-colors ${i === activeIdx ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>
             {s}{' '}
           </span>
