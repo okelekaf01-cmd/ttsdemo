@@ -31,24 +31,24 @@ export function VoiceComparison({ primarySpeechResult, multiVoiceResults }: Prop
   }
 
   return (
-    <div className="rounded-lg border border-gray-800 bg-gray-900 p-4 space-y-4">
-      <label className="text-sm font-medium text-gray-400">多音色对比</label>
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+      <label className="text-sm font-medium text-gray-700">多音色对比</label>
       <div className="grid grid-cols-2 gap-3">
         {allVoices.map(v => (
-          <div key={v.voiceId} className="rounded border border-gray-700 bg-gray-950 p-3 space-y-2">
-            <div className="text-sm font-medium text-gray-200">{v.voiceName}</div>
+          <div key={v.voiceId} className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+            <div className="text-sm font-medium text-gray-800">{v.voiceName}</div>
             {'error' in v && v.error
-              ? <p className="text-xs text-red-400">{v.error}</p>
+              ? <p className="text-xs text-red-500">{v.error}</p>
               : urls[v.voiceId]
                 ? <>
                     <audio src={urls[v.voiceId]} controls className="h-8 w-full"
                       onPlay={e => document.querySelectorAll('audio').forEach(a => { if (a !== e.currentTarget) a.pause() })} />
                     <button onClick={() => download(v.voiceId, v.voiceName)}
-                      className="w-full rounded border border-gray-700 py-1 text-xs hover:bg-gray-800">
+                      className="w-full rounded-lg border border-gray-200 bg-white py-1.5 text-xs text-gray-600 hover:bg-gray-50 transition-colors">
                       下载 {v.voiceName}
                     </button>
                   </>
-                : <p className="text-xs text-gray-500">生成中...</p>}
+                : <p className="text-xs text-gray-400">生成中...</p>}
           </div>
         ))}
       </div>

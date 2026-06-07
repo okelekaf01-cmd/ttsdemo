@@ -34,7 +34,7 @@ export function HighlightPlayer({ englishText, speechResult }: HighlightPlayerPr
         className="w-full" />
       <div className="text-sm leading-loose">
         {sentences.map((s, i) => (
-          <span key={i} className={`rounded px-0.5 transition-colors ${i === activeIdx ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>
+          <span key={i} className={`rounded px-0.5 transition-colors ${i === activeIdx ? 'bg-blue-100 text-blue-800 font-medium' : 'text-gray-700'}`}>
             {s}{' '}
           </span>
         ))}

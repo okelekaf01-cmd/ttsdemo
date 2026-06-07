@@ -18,9 +18,9 @@ export default function Home() {
   }, [task.state])
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="border-b border-gray-800 px-6 py-4">
-        <h1 className="text-lg font-semibold">口播翻译工具</h1>
+    <div className="flex h-screen flex-col bg-gray-50">
+      <header className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
+        <h1 className="text-lg font-semibold text-gray-900">口播翻译工具</h1>
       </header>
       <div className="flex flex-1 overflow-hidden">
         <HistoryPanel onSelect={task.loadFromHistory} />

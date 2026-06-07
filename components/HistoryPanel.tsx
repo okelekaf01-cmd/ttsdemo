@@ -25,17 +25,17 @@ export function HistoryPanel({ onSelect }: Props) {
   }
 
   return (
-    <aside className="flex w-56 shrink-0 flex-col overflow-hidden border-r border-gray-800">
-      <div className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">历史记录</div>
-      <div className="flex-1 space-y-1 overflow-y-auto px-2 pb-2">
-        {items.length === 0 && <p className="px-2 py-4 text-xs text-gray-600">暂无历史记录</p>}
+    <aside className="flex w-56 shrink-0 flex-col overflow-hidden border-r border-gray-200 bg-white">
+      <div className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400">历史记录</div>
+      <div className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-2">
+        {items.length === 0 && <p className="px-2 py-4 text-xs text-gray-400">暂无历史记录</p>}
         {items.map(item => (
           <button key={item.id} onClick={() => handleSelect(item.id)}
-            className={`w-full rounded px-3 py-2 text-left text-xs hover:bg-gray-800 ${selectedId === item.id ? 'bg-gray-800' : ''}`}>
-            <div className="truncate font-medium text-gray-300">
+            className={`w-full rounded-lg px-3 py-2.5 text-left text-xs transition-colors hover:bg-gray-50 ${selectedId === item.id ? 'bg-blue-50 text-blue-700' : ''}`}>
+            <div className={`truncate font-medium ${selectedId === item.id ? 'text-blue-700' : 'text-gray-700'}`}>
               {item.chineseText.slice(0, 20)}{item.chineseText.length > 20 ? '...' : ''}
             </div>
-            <div className="mt-0.5 text-gray-600">{new Date(item.createdAt).toLocaleDateString('zh-CN')}</div>
+            <div className="mt-0.5 text-gray-400">{new Date(item.createdAt).toLocaleDateString('zh-CN')}</div>
           </button>
         ))}
       </div>
