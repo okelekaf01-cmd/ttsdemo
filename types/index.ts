@@ -24,6 +24,7 @@ export interface HistoryRecord {
   audioBlob: Blob
   voiceId: string
   alignment: AlignmentData
+  multiVoiceResults?: MultiVoiceResult[]
 }
 
 export interface SentenceWithTimestamps {

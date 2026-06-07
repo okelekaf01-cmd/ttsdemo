@@ -86,6 +86,7 @@ export function useVoiceoverTask() {
       audioBlob,
       voiceId: VOICES.primary.id,
       alignment: speechResult.alignment,
+      multiVoiceResults,
     })
       .then(() => window.dispatchEvent(new Event('history-updated')))
       .catch(console.error)
@@ -98,7 +99,7 @@ export function useVoiceoverTask() {
       chineseText: record.chineseText,
       englishText: record.englishText,
       speechResult: { audioBase64, alignment: record.alignment },
-      multiVoiceResults: [],
+      multiVoiceResults: record.multiVoiceResults ?? [],
       error: null,
     })
   }, [])

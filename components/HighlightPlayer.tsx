@@ -29,7 +29,9 @@ export function HighlightPlayer({ englishText, speechResult }: HighlightPlayerPr
   return (
     <div className="space-y-3">
       <audio ref={audioRef} src={audioUrl} controls onTimeUpdate={onTimeUpdate}
-        onEnded={() => setActiveIdx(-1)} className="w-full" />
+        onEnded={() => setActiveIdx(-1)}
+        onPlay={e => document.querySelectorAll('audio').forEach(a => { if (a !== e.currentTarget) a.pause() })}
+        className="w-full" />
       <div className="text-sm leading-loose">
         {sentences.map((s, i) => (
           <span key={i} className={`rounded px-0.5 transition-colors ${i === activeIdx ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>

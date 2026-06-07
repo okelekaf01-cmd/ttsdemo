@@ -41,7 +41,8 @@ export function VoiceComparison({ primarySpeechResult, multiVoiceResults }: Prop
               ? <p className="text-xs text-red-400">{v.error}</p>
               : urls[v.voiceId]
                 ? <>
-                    <audio src={urls[v.voiceId]} controls className="h-8 w-full" />
+                    <audio src={urls[v.voiceId]} controls className="h-8 w-full"
+                      onPlay={e => document.querySelectorAll('audio').forEach(a => { if (a !== e.currentTarget) a.pause() })} />
                     <button onClick={() => download(v.voiceId, v.voiceName)}
                       className="w-full rounded border border-gray-700 py-1 text-xs hover:bg-gray-800">
                       下载 {v.voiceName}
