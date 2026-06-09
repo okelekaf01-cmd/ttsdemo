@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>IndexedDB 加密验证</title>
+<style>body{font:14px monospace;background:#111;color:#eee;padding:20px}
+h2{color:#4fc3f7;margin-top:24px}.ok{color:#66bb6a}.warn{color:#ffa726}
+.card{background:#1e1e1e;border:1px solid #333;border-radius:8px;padding:16px;margin:12px 0}
+pre{background:#000;padding:12px;border-radius:4px;overflow-x:auto;font-size:12px}
+</style></head><body>
+<h1>IndexedDB 加密验证</h1>
+<div class="card">
+<h2>voiceover-history / records</h2>
+<div id="records"></div>
+</div>
+<script>
+const DB_NAME = 'voiceover-history', STORE = 'records'
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const r = indexedDB.open(DB_NAME, 2)
+    r.onsuccess = () => resolve(r.result)
+    r.onerror = () => {
+      const r2 = indexedDB.open(DB_NAME, 3)
+      r2.onsuccess = () => resolve(r2.result)
+      r2.onerror = () => reject(r2.error)
+    }
+  })
+}
+
+async function main() {
+  const el = document.getElementById('records')
+  try {
+    const db = await openDB()
+    const tx = db.transaction(STORE, 'readonly')
+    const all = await new Promise((res, rej) => {
+      const r = tx.objectStore(STORE).getAll()
+      r.onsuccess = () => res(r.result)
+      r.onerror = () => rej(r.error)
+    })
+    if (!all.length) {
+      el.innerHTML = '<p class="warn">暂无历史记录 — 先生成一条语音再来看</p>'
+      return
+    }
+    for (const r of all) {
+      const keys = Object.keys(r).filter(k => k !== 'ciphertext' && k !== 'iv')
+      const plainFields = keys.join(', ')
+      const hasPlaintext = r.chineseText !== undefined
+      const status = hasPlaintext
+        ? '<span class="warn">v2（未加密）— 包含 chineseText / englishText 明文</span>'
+        : '<span class="ok">v3（已加密）— 仅 id / createdAt / iv / ciphertext，无明文</span>'
+
+      el.innerHTML += `
+        <div class="card">
+          <div>id: <b>${r.id?.slice(0,8)}...</b></div>
+          <div>createdAt: <b>${new Date(r.createdAt).toLocaleString('zh-CN')}</b></div>
+          <div>明文字段: <b>${plainFields || '无'}</b></div>
+          <div>${status}</div>
+          <pre>${JSON.stringify(r, null, 2).slice(0, 400)}...</pre>
+        </div>`
+    }
+  } catch(e) {
+    el.innerHTML = `<p class="warn">读取失败: ${e.message}</p>`
+  }
+}
+main()
+</script>
+</body></html>

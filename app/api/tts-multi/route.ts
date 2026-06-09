@@ -1,8 +1,10 @@
-import { type NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { generateSpeech } from '@/lib/elevenlabs'
 import { checkRateLimit } from '@/lib/rate-limiter'
 import { VOICES } from '@/lib/voices.config'
 import { decryptBody } from '@/lib/crypto.server'
+import { withAuth, type AuthedRequest } from '@/lib/auth-server'
+import { withPoints } from '@/lib/points'
 
 const ALLOWED: Set<string> = new Set(VOICES.comparison.map(v => v.id))
 const CONCURRENCY = 2
@@ -19,7 +21,7 @@ async function runBatched<T>(
   return results
 }
 
-export async function POST(req: NextRequest) {
+const handler = async (req: AuthedRequest) => {
   const origin = req.headers.get('origin')
   const host = req.headers.get('host')
   if (origin && host && !origin.includes(host))
@@ -29,11 +31,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
   let body: Record<string, unknown>
-  try {
-    body = await decryptBody(req)
-  } catch {
-    return NextResponse.json({ error: '无效请求' }, { status: 400 })
-  }
+  try { body = await decryptBody(req) }
+  catch { return NextResponse.json({ error: '无效请求' }, { status: 400 }) }
 
   const { text, voiceIds } = body
   if (typeof text !== 'string' || text.length < 1 || text.length > 2000)
@@ -56,12 +55,12 @@ export async function POST(req: NextRequest) {
         ? r.value
         : {
             voiceId: (voiceIds as string[])[i],
-            voiceName:
-              VOICES.comparison.find(v => v.id === (voiceIds as string[])[i])?.name ??
-              (voiceIds as string[])[i],
+            voiceName: VOICES.comparison.find(v => v.id === (voiceIds as string[])[i])?.name ?? (voiceIds as string[])[i],
             audioBase64: null,
             error: 'Generation failed',
           }
     )
   )
 }
+
+export const POST = withAuth(withPoints('tts_multi')(handler))

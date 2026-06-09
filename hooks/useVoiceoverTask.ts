@@ -1,9 +1,11 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { encryptedFetch } from '@/lib/crypto.client'
 import { saveRecord } from '@/lib/history'
 import { VOICES } from '@/lib/voices.config'
+import { useAuth } from '@/components/AuthProvider'
 import type { HistoryRecord, MultiVoiceResult, SpeechResult, TaskState } from '@/types'
 
 interface TaskData {
@@ -30,6 +32,8 @@ async function blobToBase64(blob: Blob): Promise<string> {
 }
 
 export function useVoiceoverTask() {
+  const router = useRouter()
+  const { user, refreshBalance } = useAuth()
   const [data, setData] = useState<TaskData>(INITIAL)
 
   const generate = useCallback(async (chineseText: string) => {
@@ -38,7 +42,11 @@ export function useVoiceoverTask() {
     const translateResult = await encryptedFetch<{ ok: boolean; text?: string; error?: string }>(
       '/api/translate',
       { chineseText }
-    ).catch(err => ({ ok: false as const, error: String(err) }))
+    ).catch(err => {
+      if (err instanceof Error && err.message.includes('401'))
+        router.push('/login')
+      return { ok: false as const, error: String(err) }
+    })
 
     if (!translateResult.ok) {
       setData(d => ({ ...d, state: 'error', error: translateResult.error ?? '翻译失败' }))
@@ -63,12 +71,13 @@ export function useVoiceoverTask() {
     const multiVoiceResults = multiRes.status === 'fulfilled' ? multiRes.value : []
 
     if (!speechResult) {
-      const reason =
-        speechRes.status === 'rejected'
-          ? speechRes.reason instanceof Error
-            ? speechRes.reason.message
-            : String(speechRes.reason)
-          : ''
+      let reason = ''
+      if (speechRes.status === 'rejected') {
+        const e = speechRes.reason
+        reason = e instanceof Error ? e.message : String(e)
+        if (reason.includes('402')) reason = '积分不足，无法生成语音'
+        if (reason.includes('401')) { router.push('/login'); return }
+      }
       setData(d => ({ ...d, state: 'error', error: `语音生成失败：${reason}` }))
       return
     }
@@ -77,19 +86,22 @@ export function useVoiceoverTask() {
 
     const bytes = Uint8Array.from(atob(speechResult.audioBase64), c => c.charCodeAt(0))
     const audioBlob = new Blob([bytes], { type: 'audio/mpeg' })
-    saveRecord({
-      id: crypto.randomUUID(),
-      createdAt: Date.now(),
-      chineseText,
-      englishText,
-      audioBlob,
-      voiceId: VOICES.primary.id,
-      alignment: speechResult.alignment,
-      multiVoiceResults,
-    })
-      .then(() => window.dispatchEvent(new Event('history-updated')))
-      .catch(console.error)
-  }, [])
+    if (user?.id) {
+      saveRecord({
+        id: crypto.randomUUID(),
+        createdAt: Date.now(),
+        chineseText, englishText,
+        audioBlob,
+        voiceId: VOICES.primary.id,
+        alignment: speechResult.alignment,
+        multiVoiceResults,
+      }, user.id)
+        .then(() => window.dispatchEvent(new Event('history-updated')))
+        .catch(console.error)
+    }
+
+    refreshBalance()
+  }, [user, router, refreshBalance])
 
   const loadFromHistory = useCallback(async (record: HistoryRecord) => {
     const audioBase64 = await blobToBase64(record.audioBlob)

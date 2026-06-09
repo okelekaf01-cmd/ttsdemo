@@ -1,6 +1,7 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { getAllRecords, getRecord, deleteRecord } from '@/lib/history'
+import { useAuth } from '@/components/AuthProvider'
 import type { HistoryRecord } from '@/types'
 
 type ListItem = Omit<HistoryRecord, 'audioBlob' | 'alignment' | 'voiceId'>
@@ -8,15 +9,19 @@ type ListItem = Omit<HistoryRecord, 'audioBlob' | 'alignment' | 'voiceId'>
 interface Props { onSelect: (record: HistoryRecord) => void }
 
 export function HistoryPanel({ onSelect }: Props) {
+  const { user } = useAuth()
   const [items, setItems] = useState<ListItem[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const refresh = () => getAllRecords().then(setItems)
+  const refresh = useCallback(() => {
+    if (user?.id) getAllRecords(user.id).then(setItems)
+    else setItems([])
+  }, [user])
   useEffect(() => {
     refresh()
     window.addEventListener('history-updated', refresh)
     return () => window.removeEventListener('history-updated', refresh)
-  }, [])
+  }, [refresh, user])
 
   const handleSelect = async (id: string) => {
     setSelectedId(id)

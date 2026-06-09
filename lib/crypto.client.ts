@@ -1,7 +1,5 @@
 import type { HistoryRecord, AlignmentData, MultiVoiceResult } from '@/types'
 
-// ─── 工具函数 ─────────────────────────────────────────────────
-
 function toBase64(buf: ArrayBuffer | Uint8Array): string {
   const arr = buf instanceof Uint8Array ? buf : new Uint8Array(buf)
   let binary = ''
@@ -24,11 +22,7 @@ async function getPublicKey(): Promise<CryptoKey> {
   const b64 = pem.replace(/-----BEGIN PUBLIC KEY-----|-----END PUBLIC KEY-----|\n|\r/g, '')
   const der = Uint8Array.from(atob(b64), c => c.charCodeAt(0))
   _cachedPublicKey = await crypto.subtle.importKey(
-    'spki',
-    der,
-    { name: 'RSA-OAEP', hash: 'SHA-256' },
-    false,
-    ['encrypt']
+    'spki', der, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']
   )
   return _cachedPublicKey
 }
@@ -38,17 +32,10 @@ export async function encryptedFetch<T>(
   payload: Record<string, unknown>
 ): Promise<T> {
   const publicKey = await getPublicKey()
-
-  const aesKey = await crypto.subtle.generateKey(
-    { name: 'AES-GCM', length: 256 },
-    true,
-    ['encrypt']
-  )
+  const aesKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt'])
   const iv = crypto.getRandomValues(new Uint8Array(12))
-
   const plaintext = new TextEncoder().encode(JSON.stringify(payload))
   const ciphertextBuf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, plaintext)
-
   const rawAesKey = await crypto.subtle.exportKey('raw', aesKey)
   const encryptedKeyBuf = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, publicKey, rawAesKey)
 
@@ -61,7 +48,6 @@ export async function encryptedFetch<T>(
       ciphertext: toBase64(ciphertextBuf),
     }),
   })
-
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
     throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`)
@@ -87,11 +73,12 @@ async function getDeviceKey(): Promise<CryptoKey> {
 export interface StoredRecord {
   id: string
   createdAt: number
+  userId: string
   iv: string
   ciphertext: string
 }
 
-export async function encryptRecord(record: HistoryRecord): Promise<StoredRecord> {
+export async function encryptRecord(record: HistoryRecord, userId: string): Promise<StoredRecord> {
   const key = await getDeviceKey()
   const iv = crypto.getRandomValues(new Uint8Array(12))
 
@@ -112,15 +99,9 @@ export async function encryptRecord(record: HistoryRecord): Promise<StoredRecord
       multiVoiceResults: record.multiVoiceResults,
     })
   )
-
   const ciphertextBuf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext)
 
-  return {
-    id: record.id,
-    createdAt: record.createdAt,
-    iv: toBase64(iv),
-    ciphertext: toBase64(ciphertextBuf),
-  }
+  return { id: record.id, createdAt: record.createdAt, userId, iv: toBase64(iv), ciphertext: toBase64(ciphertextBuf) }
 }
 
 export async function decryptRecord(stored: StoredRecord): Promise<HistoryRecord | null> {
@@ -128,31 +109,17 @@ export async function decryptRecord(stored: StoredRecord): Promise<HistoryRecord
     const key = await getDeviceKey()
     const iv = Uint8Array.from(atob(stored.iv), c => c.charCodeAt(0))
     const ciphertextBuf = Uint8Array.from(atob(stored.ciphertext), c => c.charCodeAt(0))
-
     const plaintextBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertextBuf)
     const data = JSON.parse(new TextDecoder().decode(plaintextBuf)) as {
-      chineseText: string
-      englishText: string
-      audioBase64: string
-      voiceId: string
-      alignment: AlignmentData
-      multiVoiceResults?: MultiVoiceResult[]
+      chineseText: string; englishText: string; audioBase64: string; voiceId: string
+      alignment: AlignmentData; multiVoiceResults?: MultiVoiceResult[]
     }
-
     const bytes = Uint8Array.from(atob(data.audioBase64), c => c.charCodeAt(0))
-    const audioBlob = new Blob([bytes], { type: 'audio/mpeg' })
-
     return {
-      id: stored.id,
-      createdAt: stored.createdAt,
-      chineseText: data.chineseText,
-      englishText: data.englishText,
-      audioBlob,
-      voiceId: data.voiceId,
-      alignment: data.alignment,
-      multiVoiceResults: data.multiVoiceResults,
+      id: stored.id, createdAt: stored.createdAt,
+      chineseText: data.chineseText, englishText: data.englishText,
+      audioBlob: new Blob([bytes], { type: 'audio/mpeg' }),
+      voiceId: data.voiceId, alignment: data.alignment, multiVoiceResults: data.multiVoiceResults,
     }
-  } catch {
-    return null
-  }
+  } catch { return null }
 }

@@ -4,9 +4,12 @@ import { InputPanel } from '@/components/InputPanel'
 import { ResultPanel } from '@/components/ResultPanel'
 import { VoiceComparison } from '@/components/VoiceComparison'
 import { HistoryPanel } from '@/components/HistoryPanel'
+import { PointsBadge } from '@/components/PointsBadge'
+import { useAuth } from '@/components/AuthProvider'
 import { useVoiceoverTask } from '@/hooks/useVoiceoverTask'
 
 export default function Home() {
+  const { user, loading: authLoading, logout } = useAuth()
   const task = useVoiceoverTask()
   const isLoading = task.state === 'translating' || task.state === 'generating'
   const resultRef = useRef<HTMLDivElement>(null)
@@ -19,18 +22,41 @@ export default function Home() {
     }
   }, [task.state])
 
+  if (authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="text-sm text-gray-400">加载中...</div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="text-sm text-gray-400">请先登录</div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-screen flex-col bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-4 py-4 shadow-sm flex items-center justify-between">
         <h1 className="text-lg font-semibold text-gray-900">口播翻译工具</h1>
-        <button onClick={() => setHistoryOpen(o => !o)}
-          className="md:hidden rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50">
-          历史记录
-        </button>
+        <div className="flex items-center gap-3">
+          <PointsBadge />
+          <span className="text-xs text-gray-400">{user.displayName}</span>
+          <button onClick={logout}
+            className="text-xs text-gray-500 hover:text-red-600 transition-colors">
+            退出
+          </button>
+          <button onClick={() => setHistoryOpen(o => !o)}
+            className="md:hidden rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50">
+            历史记录
+          </button>
+        </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden relative">
-        {/* mobile history drawer */}
         {historyOpen && (
           <div className="md:hidden absolute inset-0 z-10 flex">
             <div className="flex-1 bg-black/30" onClick={() => setHistoryOpen(false)} />
@@ -40,7 +66,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* desktop sidebar */}
         <div className="hidden md:flex">
           <HistoryPanel onSelect={r => { task.loadFromHistory(r); setInputText(r.chineseText) }} />
         </div>

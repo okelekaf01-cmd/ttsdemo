@@ -1,13 +1,14 @@
 import { createHash } from 'crypto'
-import { type NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { decryptBody } from '@/lib/crypto.server'
 import { checkRateLimit } from '@/lib/rate-limiter'
 import { translateToEnglish } from '@/lib/deepl'
+import { withAuth, type AuthedRequest } from '@/lib/auth-server'
 
 const cache = new Map<string, { translation: string; expiresAt: number }>()
 const CACHE_TTL = 5 * 60 * 1000
 
-export async function POST(req: NextRequest) {
+const handler = async (req: AuthedRequest) => {
   const origin = req.headers.get('origin')
   const host = req.headers.get('host')
   if (origin && host && !origin.includes(host))
@@ -17,11 +18,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
   let body: Record<string, unknown>
-  try {
-    body = await decryptBody(req)
-  } catch {
-    return NextResponse.json({ ok: false, error: '无效请求' }, { status: 400 })
-  }
+  try { body = await decryptBody(req) }
+  catch { return NextResponse.json({ ok: false, error: '无效请求' }, { status: 400 }) }
 
   const { chineseText } = body
   if (typeof chineseText !== 'string' || chineseText.length < 1 || chineseText.length > 2000)
@@ -43,3 +41,5 @@ export async function POST(req: NextRequest) {
     )
   }
 }
+
+export const POST = withAuth(handler)
