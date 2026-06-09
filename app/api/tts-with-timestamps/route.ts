@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { generateSpeechWithTimestamps } from '@/lib/elevenlabs'
 import { checkRateLimit } from '@/lib/rate-limiter'
 import { VOICES } from '@/lib/voices.config'
+import { decryptBody } from '@/lib/crypto.server'
 
 const ALLOWED: Set<string> = new Set([VOICES.primary.id, ...VOICES.comparison.map(v => v.id)])
 
@@ -14,14 +15,21 @@ export async function POST(req: NextRequest) {
   if (!checkRateLimit(req.headers.get('x-forwarded-for') ?? 'unknown'))
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
-  const { text, voiceId } = await req.json().catch(() => ({}))
+  let body: Record<string, unknown>
+  try {
+    body = await decryptBody(req)
+  } catch {
+    return NextResponse.json({ error: '无效请求' }, { status: 400 })
+  }
+
+  const { text, voiceId } = body
   if (typeof text !== 'string' || text.length < 1 || text.length > 2000)
     return NextResponse.json({ error: 'Invalid text' }, { status: 400 })
-  if (!ALLOWED.has(voiceId))
+  if (!ALLOWED.has(voiceId as string))
     return NextResponse.json({ error: 'Invalid voiceId' }, { status: 400 })
 
   try {
-    return NextResponse.json(await generateSpeechWithTimestamps(text, voiceId))
+    return NextResponse.json(await generateSpeechWithTimestamps(text, voiceId as string))
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'TTS failed'
     console.error('[tts-with-timestamps]', msg)

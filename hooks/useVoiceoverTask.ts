@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { translateText } from '@/app/actions'
+import { encryptedFetch } from '@/lib/crypto.client'
 import { saveRecord } from '@/lib/history'
 import { VOICES } from '@/lib/voices.config'
 import type { HistoryRecord, MultiVoiceResult, SpeechResult, TaskState } from '@/types'
@@ -35,31 +35,27 @@ export function useVoiceoverTask() {
   const generate = useCallback(async (chineseText: string) => {
     setData({ ...INITIAL, state: 'translating', chineseText })
 
-    const translateResult = await translateText(chineseText)
+    const translateResult = await encryptedFetch<{ ok: boolean; text?: string; error?: string }>(
+      '/api/translate',
+      { chineseText }
+    ).catch(err => ({ ok: false as const, error: String(err) }))
+
     if (!translateResult.ok) {
-      setData(d => ({ ...d, state: 'error', error: translateResult.error }))
+      setData(d => ({ ...d, state: 'error', error: translateResult.error ?? '翻译失败' }))
       return
     }
 
-    const englishText = translateResult.text
+    const englishText = translateResult.text!
     setData(d => ({ ...d, state: 'generating', englishText }))
 
     const [speechRes, multiRes] = await Promise.allSettled([
-      fetch('/api/tts-with-timestamps', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: englishText, voiceId: VOICES.primary.id }),
-      }).then(async r => {
-        if (!r.ok) throw new Error(`TTS ${r.status}`)
-        return r.json() as Promise<SpeechResult>
+      encryptedFetch<SpeechResult>('/api/tts-with-timestamps', {
+        text: englishText,
+        voiceId: VOICES.primary.id,
       }),
-      fetch('/api/tts-multi', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: englishText, voiceIds: VOICES.comparison.map(v => v.id) }),
-      }).then(async r => {
-        if (!r.ok) throw new Error(`Multi TTS ${r.status}`)
-        return r.json() as Promise<MultiVoiceResult[]>
+      encryptedFetch<MultiVoiceResult[]>('/api/tts-multi', {
+        text: englishText,
+        voiceIds: VOICES.comparison.map(v => v.id),
       }),
     ])
 
@@ -67,22 +63,25 @@ export function useVoiceoverTask() {
     const multiVoiceResults = multiRes.status === 'fulfilled' ? multiRes.value : []
 
     if (!speechResult) {
-      const reason = speechRes.status === 'rejected'
-        ? (speechRes.reason instanceof Error ? speechRes.reason.message : String(speechRes.reason))
-        : ''
+      const reason =
+        speechRes.status === 'rejected'
+          ? speechRes.reason instanceof Error
+            ? speechRes.reason.message
+            : String(speechRes.reason)
+          : ''
       setData(d => ({ ...d, state: 'error', error: `语音生成失败：${reason}` }))
       return
     }
 
     setData(d => ({ ...d, state: 'done', speechResult, multiVoiceResults }))
 
-    // Fire-and-forget: save to history
     const bytes = Uint8Array.from(atob(speechResult.audioBase64), c => c.charCodeAt(0))
     const audioBlob = new Blob([bytes], { type: 'audio/mpeg' })
     saveRecord({
       id: crypto.randomUUID(),
       createdAt: Date.now(),
-      chineseText, englishText,
+      chineseText,
+      englishText,
       audioBlob,
       voiceId: VOICES.primary.id,
       alignment: speechResult.alignment,
