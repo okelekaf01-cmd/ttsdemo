@@ -13,7 +13,8 @@ export function getPublicKeyPem(): string {
   if (_pubKeyPem) return _pubKeyPem
   const raw = process.env.ENCRYPTION_PRIVATE_KEY
   if (!raw) throw new Error('ENCRYPTION_PRIVATE_KEY not set')
-  const priv = createPrivateKey(raw.replace(/\\n/g, '\n'))
+  const pem = raw.startsWith('-----') ? raw.replace(/\\n/g, '\n') : Buffer.from(raw, 'base64').toString('utf8')
+  const priv = createPrivateKey(pem)
   _pubKeyPem = createPublicKey(priv).export({ type: 'spki', format: 'pem' }) as string
   return _pubKeyPem
 }
@@ -28,7 +29,8 @@ export async function decryptBody(req: NextRequest): Promise<Record<string, unkn
     ciphertext: string
   }
 
-  const priv = createPrivateKey(raw.replace(/\\n/g, '\n'))
+  const pem = raw.startsWith('-----') ? raw.replace(/\\n/g, '\n') : Buffer.from(raw, 'base64').toString('utf8')
+  const priv = createPrivateKey(pem)
   const encKeyBuf = Buffer.from(body.encryptedKey, 'base64')
   const ivBuf = Buffer.from(body.iv, 'base64')
   const ciphertextBuf = Buffer.from(body.ciphertext, 'base64')
